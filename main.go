@@ -1,28 +1,48 @@
 package main
 
 import (
-	"fmt"
-	"io"
+	"context"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"time"
+
+	"github.com/alwarmra/golang-webserver/handlers"
 )
 
 func main() {
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.Println("Hello World")
-		d, err := io.ReadAll(r.Body)
+	l := log.New(os.Stdout, "product-api", log.LstdFlags)
+	hh := handlers.NewHello(l)
+	hg := handlers.NewGoodBye(l)
+
+	sm := http.NewServeMux()
+	sm.Handle("/", hh)
+	sm.Handle("/goodbye", hg)
+
+	s := &http.Server{
+		Addr:         ":9090",
+		Handler:      sm,
+		IdleTimeout:  120 * time.Second,
+		ReadTimeout:  60 * time.Second,
+		WriteTimeout: 180 * time.Second,
+	}
+
+	go func() {
+		err := s.ListenAndServe()
 		if err != nil {
-			http.Error(w, "Oops", http.StatusBadRequest)
-			return
+			l.Fatal()
 		}
-		fmt.Fprintf(w, "Hello %s", d)
-	})
+	}()
 
-	http.HandleFunc("/goodbye", func(w http.ResponseWriter, r *http.Request) {
-		log.Println("Googdbye")
-	})
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt)
 
-	http.ListenAndServe(":9090", nil)
+	sig := <-sigChan
+	l.Println("Got signal", sig)
+
+	tc, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	s.Shutdown(tc)
 
 }
