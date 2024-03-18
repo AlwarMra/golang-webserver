@@ -21,13 +21,15 @@ func main() {
 	getRouter := r.Methods(http.MethodGet).Subrouter()
 	postRouter := r.Methods(http.MethodPost).Subrouter()
 	putRouter := r.Methods(http.MethodPut).Subrouter()
+	deleteRouter := r.Methods(http.MethodDelete).Subrouter()
 
 	postRouter.Use(ph.MiddleWareValidateProduct)
 	putRouter.Use(ph.MiddleWareValidateProduct)
 
-	getRouter.HandleFunc("/products", ph.GetProducts)
-	postRouter.HandleFunc("/products", ph.CreateProduct)
-	putRouter.HandleFunc("/products/{id:[0-9]+}", ph.UpdateProduct)
+	getRouter.HandleFunc("/", ph.GetProducts)
+	postRouter.HandleFunc("/", ph.CreateProduct)
+	putRouter.HandleFunc("/{id:[0-9]+}", ph.UpdateProduct)
+	deleteRouter.HandleFunc("/{id:[0-9]+}", ph.DeleteProduct)
 
 	s := &http.Server{
 		Addr:         ":9090",
